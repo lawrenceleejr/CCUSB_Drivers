@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ccusb"
+version = "1.0.0"
+description = "Python interface and GUI for the W-IE-NE-R CC-USB CAMAC controller"
+readme = "../README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.scripts]
+ccusb-gui = "ccusb.gui:main"
+
+[tool.setuptools]
+packages = ["ccusb"]
+
+[tool.setuptools.package-data]
+ccusb = ["*.so", "*.so.*", "*.dll", "*.dylib"]
