@@ -1,0 +1,15 @@
+# Example data stack for "ccusb daq" / the GUI's DAQ tab.
+# Reads the 8 channels of the simulator's ADC in station 7.
+#
+#   read N A F [long] [lam]        write N A F DATA [long]
+#   control N A F                  marker VALUE
+#   qstop|qscan|repeat N A F MAX [long] [lam]
+read 7 0 0
+read 7 1 0
+read 7 2 0
+read 7 3 0
+read 7 4 0
+read 7 5 0
+read 7 6 0
+read 7 7 2      # F2 on the last channel also clears the module
+marker 0xEEEE   # end-of-event marker

@@ -17,7 +17,7 @@ include(GNUInstallDirs)
 # include/libusb-1.0, import library in lib or a VS20xx/MS64 subfolder),
 # or use vcpkg (libusb) which also provides pkg-config files.
 find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
+if(PKG_CONFIG_FOUND AND NOT LIBUSB_ROOT AND NOT DEFINED ENV{LIBUSB_ROOT})
   pkg_check_modules(LIBUSB IMPORTED_TARGET libusb-1.0)
 endif()
 if(LIBUSB_FOUND)
@@ -71,15 +71,26 @@ install(TARGETS ccusb EXPORT ccusbTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES include/ccusb/ccusb.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ccusb)
 install(FILES include/libxxusb.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT ccusbTargets NAMESPACE ccusb:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccusb)
+install(EXPORT ccusbTargets FILE ccusbConfig.cmake NAMESPACE ccusb::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ccusb)
 
 configure_file(ccusb.pc.in ${CMAKE_CURRENT_BINARY_DIR}/ccusb.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ccusb.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
+# Optional: copy the built library into python/ccusb so that
+# "pip install ./python" bundles it.
+option(CCUSB_PYTHON_BUNDLE "Copy libccusb into the Python package after build" OFF)
+if(CCUSB_PYTHON_BUNDLE)
+  add_custom_command(TARGET ccusb POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:ccusb>
+            ${CMAKE_CURRENT_SOURCE_DIR}/python/ccusb/$<TARGET_FILE_NAME:ccusb>)
+endif()
+
 # ---- tools -----------------------------------------------------------
 if(CCUSB_BUILD_TOOLS)
   add_executable(ccusb_cli tools/ccusb_cli.c)
-  set_target_properties(ccusb_cli PROPERTIES OUTPUT_NAME ccusb)
+  # same base name as the library: keep the debug symbol files apart
+  set_target_properties(ccusb_cli PROPERTIES OUTPUT_NAME ccusb PDB_NAME ccusb_cli)
   target_link_libraries(ccusb_cli PRIVATE ccusb)
   if(MSVC)
     target_compile_options(ccusb_cli PRIVATE /D_CRT_SECURE_NO_WARNINGS)

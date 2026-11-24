@@ -8,6 +8,7 @@
 #include "ccusb_internal.h"
 
 #include <libusb.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -100,7 +101,7 @@ int ccusb__usb_list(ccusb_device_info *out, int max)
 {
     libusb_context *ctx = NULL;
     libusb_device **list = NULL;
-    ssize_t n, i;
+    ptrdiff_t n, i;
     int found = 0, rc;
 
     rc = libusb_init(&ctx);
@@ -151,7 +152,7 @@ int ccusb__usb_open(const char *serial, ccusb_transport *ops, void **vctx,
     libusb_context *ctx = NULL;
     libusb_device **list = NULL;
     libusb_device_handle *found = NULL;
-    ssize_t n, i;
+    ptrdiff_t n, i;
     int rc, last_err = CCUSB_ERR_NOT_FOUND;
     int want_any = (serial == NULL || serial[0] == 0);
     usb_ctx *c;

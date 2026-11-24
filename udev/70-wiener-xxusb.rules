@@ -1,0 +1,11 @@
+# W-IE-NE-R CC-USB (16dc:0001) and VM-USB (16dc:000b)
+#
+# Gives the logged-in desktop user (uaccess) and members of the "plugdev"
+# group read/write access, so no root is needed.
+#
+#   sudo cp 70-wiener-xxusb.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# then unplug/replug the controller (or power-cycle the crate).
+SUBSYSTEM=="usb", ATTR{idVendor}=="16dc", ATTR{idProduct}=="0001", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="16dc", ATTR{idProduct}=="000b", MODE="0660", GROUP="plugdev", TAG+="uaccess"
