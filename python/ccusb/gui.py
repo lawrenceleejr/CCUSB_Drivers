@@ -49,11 +49,13 @@ REG_DOC = {
     "usb_setup": "USB bulk transfer setup",
 }
 
-DEFAULT_STACK = """# Data stack: executed by the CC-USB on every trigger.
-# read N A F [long] [lam]   write N A F DATA   control N A F
-# qstop|qscan|repeat N A F MAX   marker VALUE
-#
-# The simulator has an 8-channel ADC in station 7:
+DEFAULT_STACK = """# Executed by the CC-USB on every trigger.
+#   read N A F [long] [lam]
+#   write N A F DATA [long]
+#   control N A F
+#   qstop|qscan|repeat N A F MAX [long] [lam]
+#   marker VALUE
+# The simulator has an 8-channel ADC in N7:
 read 7 0 0
 read 7 1 0
 read 7 2 0
@@ -61,7 +63,7 @@ read 7 3 0
 read 7 4 0
 read 7 5 0
 read 7 6 0
-read 7 7 2      # F2 on the last channel clears the ADC
+read 7 7 2   # F2 on A7 clears the ADC
 marker 0xEEEE
 """
 
@@ -99,7 +101,7 @@ def draw_sparkline(cv: tk.Canvas, values, width: int, height: int, fmt="{:.0f}")
     imin, imax = pts.index(lo), pts.index(hi)
     for i, v in ((imin, lo), (imax, hi)):
         x, y = xy(i, v)
-        cv.create_oval(x - 1.5, y - 1.5, x + 1.5, y + 1.5, fill=MUTED, outline="")
+        cv.create_oval(x - 2, y - 2, x + 2, y + 2, fill=MUTED, outline="")
     x, y = xy(n - 1, pts[-1])
     cv.create_oval(x - 2, y - 2, x + 2, y + 2, fill=ACCENT, outline="")
 
@@ -113,7 +115,7 @@ def draw_histogram(cv: tk.Canvas, counts, lo: float, hi: float, label: str):
     cv.delete("all")
     w = int(cv.winfo_width()) or 480
     h = int(cv.winfo_height()) or 220
-    left, right, top, bottom = 12, 12, 22, 34
+    left, right, top, bottom = 12, 12, 8, 40
     pw, ph = w - left - right, h - top - bottom
     total = sum(counts)
     small = ("TkDefaultFont", 8)
@@ -130,10 +132,10 @@ def draw_histogram(cv: tk.Canvas, counts, lo: float, hi: float, label: str):
         y0 = top + ph * (1 - c / peak)
         cv.create_rectangle(x0 + bw * 0.12, y0, x0 + bw * 0.88, top + ph,
                             fill=INK, outline="")
-    # direct label on the tallest bar
+    # direct label beside the tallest bar
     ip = counts.index(peak)
-    cv.create_text(left + (ip + 0.5) * bw, top + ph * 0 - 4, text=f"{peak}",
-                   anchor="s", fill=MUTED, font=small)
+    cv.create_text(left + (ip + 1) * bw + 3, top, text=f"{peak} counts",
+                   anchor="w", fill=MUTED, font=small)
     # range frame: axis spans only the occupied bins
     first = next(i for i, c in enumerate(counts) if c)
     last = nb - 1 - next(i for i, c in enumerate(reversed(counts)) if c)
@@ -145,8 +147,7 @@ def draw_histogram(cv: tk.Canvas, counts, lo: float, hi: float, label: str):
     for x, v in ((x_first, lo + first * step), (x_last, lo + (last + 1) * step)):
         cv.create_line(x, ybase, x, ybase + 3, fill=MUTED)
         cv.create_text(x, ybase + 5, text=f"{v:.0f}", anchor="n", fill=MUTED, font=small)
-    cv.create_text(w - right, h - 2, text=label, anchor="se", fill=MUTED, font=small)
-    cv.create_text(left, 4, text=f"{total} events", anchor="nw", fill=MUTED, font=small)
+    cv.create_text(left + pw / 2, h - 2, text=label, anchor="s", fill=MUTED, font=small)
 
 
 # ---------------------------------------------------------------------------
@@ -200,9 +201,12 @@ class App:
                      padding=(14, 5), borderwidth=0)
         st.map("TNotebook.Tab", background=[("selected", PAPER)],
                foreground=[("selected", INK)])
-        st.configure("TButton", background=PAPER, foreground=INK, borderwidth=1,
-                     relief="flat", padding=(10, 3))
-        st.map("TButton", background=[("active", FAINT)])
+        st.configure("TButton", background="#f3f3ea", foreground=INK, borderwidth=1,
+                     bordercolor=FAINT, lightcolor="#f3f3ea", darkcolor="#f3f3ea",
+                     relief="solid", padding=(10, 2))
+        st.map("TButton", background=[("active", FAINT), ("pressed", FAINT)])
+        st.configure("TNotebook", bordercolor=FAINT, lightcolor=PAPER, darkcolor=PAPER)
+        st.configure("TNotebook.Tab", bordercolor=FAINT, lightcolor=PAPER, darkcolor=PAPER)
         st.configure("Muted.TLabel", foreground=MUTED)
         st.configure("Head.TLabel", font=("TkDefaultFont", 10, "bold"))
         st.configure("TLabelframe", bordercolor=FAINT, relief="flat")
@@ -276,8 +280,8 @@ class App:
 
     def log(self, text, tag=None):
         self.history.configure(state="normal")
-        self.history.insert("1.0", time.strftime("%H:%M:%S  "), ("muted",))
-        self.history.insert("1.9", text + "\n", (tag,) if tag else ())
+        self.history.insert("1.0", time.strftime("%H:%M:%S  "), ("muted",),
+                            text + "\n", (tag,) if tag else ())
         if int(self.history.index("end-1c").split(".")[0]) > 500:
             self.history.delete("500.0", "end")
         self.history.configure(state="disabled")
@@ -325,7 +329,7 @@ class App:
 
         self.mon_table = ttk.Frame(tab)
         self.mon_table.pack(fill="both", expand=True, pady=12)
-        hdr = ("channel", "last 2 minutes", "now", "min", "max", "")
+        hdr = ("channel", "history", "now", "min", "max", "")
         for c, t in enumerate(hdr):
             ttk.Label(self.mon_table, text=t, style="Muted.TLabel").grid(row=0, column=c, sticky="w", padx=6)
         ttk.Label(tab, text="red dot = latest reading, grey dots = minimum and maximum",
@@ -470,9 +474,9 @@ class App:
         left = ttk.Frame(tab)
         left.pack(side="left", fill="y")
         ttk.Label(left, text="Data stack", style="Head.TLabel").pack(anchor="w")
-        self.stack_text = tk.Text(left, width=44, height=22, bg=PAPER, fg=INK, font=self.mono,
+        self.stack_text = tk.Text(left, width=46, height=22, bg=PAPER, fg=INK, font=self.mono,
                                   relief="solid", borderwidth=1, highlightthickness=0,
-                                  insertbackground=INK)
+                                  insertbackground=INK, wrap="none")
         self.stack_text.configure(highlightbackground=FAINT)
         self.stack_text.insert("1.0", DEFAULT_STACK)
         self.stack_text.pack(pady=4)
@@ -573,7 +577,8 @@ class App:
             word = parse_int(self.hist_word.get())
         except ValueError:
             hi, word = 4096.0, 0
-        draw_histogram(self.hist_cv, self.hist_counts, 0, hi, f"event word {word}")
+        draw_histogram(self.hist_cv, self.hist_counts, 0, hi,
+                       f"value of event word {word}  ({sum(self.hist_counts):,} entries)")
 
     def daq_toggle(self):
         if self.daq_thread and self.daq_thread.is_alive():

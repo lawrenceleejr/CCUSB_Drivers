@@ -203,7 +203,8 @@ short xxusb_devices_find(xxusb_device_type *xxdev)
     if (n > XXUSB_MAX_DEVICES) n = XXUSB_MAX_DEVICES;
     for (i = 0; i < n; i++) {
         if (!info[i].accessible) continue;
-        strncpy(g_devs[found].serial, info[i].serial, sizeof(g_devs[0].serial) - 1);
+        memcpy(g_devs[found].serial, info[i].serial, sizeof(g_devs[0].serial));
+        g_devs[found].serial[sizeof(g_devs[0].serial) - 1] = 0;
         xxdev[found].usbdev = &g_devs[found];
         strncpy(xxdev[found].SerialString, info[i].serial, 6);
         xxdev[found].SerialString[6] = 0;
