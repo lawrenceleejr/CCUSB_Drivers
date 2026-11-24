@@ -1,0 +1,8 @@
+build/
+build-*/
+__pycache__/
+*.pyc
+*.egg-info/
+/python/ccusb/*.so
+/python/ccusb/*.dll
+/python/ccusb/*.dylib
